@@ -1,0 +1,17 @@
+{
+  "name": "common",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jszip": "^3.2.1",
+    "node-fetch": "^2.3.0",
+    "reconnecting-websocket": "^4.1.10",
+    "ws": "^6.2.1"
+  }
+}
