@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#SET UPDATE HOOK NAME
+hookname="Common Data Update Hook"
+
 #SET YOUR PORTS
 cliport=3110
 statport=3201
@@ -22,7 +25,7 @@ echo "Cleaning pm2 ..."
 #Start common data service
 echo "Starting common data ..."
 cd common
-INIT=true DEBUG=true PORT=${cliport} pm2 start server.js --name="common"
+INIT=true DEBUG=true PORT=${cliport} NAME=${hookname} pm2 start server.js --name="common"
 cd ..
 
 #Start stats service
