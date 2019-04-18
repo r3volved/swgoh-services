@@ -4,6 +4,8 @@ module.exports = async ( fs, debug ) => {
         //Update units-indexing
         if( debug ) console.log("Updating unit indexes")
         
+        delete require.cache[require.resolve("./../data/unitsList.json")]
+
         let units = []
         if( debug ) console.log("Requiring /data/unitsList.json")
         try { units = require('./../data/unitsList.json') }
@@ -43,8 +45,6 @@ module.exports = async ( fs, debug ) => {
             if( debug ) console.error("! Could not save /data/index_units.json")
         }
         
-        delete require.cache[require.resolve("./../data/unitsList.json")]
-
         return idList
 
     } catch(e) {

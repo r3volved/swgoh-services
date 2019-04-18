@@ -4,6 +4,9 @@ module.exports = async ( fs, idList, debug ) => {
         //Update skills-indexing
         if( debug ) console.log("Updating skill indexes")
 
+        delete require.cache[require.resolve("./../data/skillList.json")]
+        delete require.cache[require.resolve("./../data/abilityList.json")]
+        
         let abilities = []
         if( debug ) console.log("Requiring /data/abilityList.json")
         try { abilities = require('./../data/abilityList.json') }
@@ -41,9 +44,6 @@ module.exports = async ( fs, idList, debug ) => {
             if( debug ) console.error("! Could not save /data/index_skills.json")
         }
 
-        delete require.cache[require.resolve("./../data/skillList.json")]
-        delete require.cache[require.resolve("./../data/abilityList.json")]
-        
         return 
 
     } catch(e) {

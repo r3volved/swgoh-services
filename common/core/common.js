@@ -6,19 +6,23 @@ const name = process.env.NAME || "ARIES Server Update"
 const debug = process.env.DEBUG || false
 const force = process.env.FORCE || false
 const index = process.env.INDEX || false
-const port = process.env.PORT || false
+const client = process.env.CLIENT || "http://localhost:3110"
 
 if( debug ) console.log(name+" has started")
 
 const update = async () => {
     try {
         
+    
         let oldMetadata = {}
         if( debug ) console.log("Requiring /data/metadata.json")
-        try { oldMetadata = require("./../data/metadata.json") } catch(e) {}
+        try { 
+            delete require.cache[require.resolve("./../data/metadata.json")]
+            oldMetadata = require("./../data/metadata.json") 
+        } catch(e) {}
         
         if( debug ) console.log("Fetching metadata")
-        let metadata = await fetch("http://localhost:"+port+"/pipe/metadata").then(res => res.json())
+        let metadata = await fetch(client+"/pipe/metadata").then(res => res.json())
         
         //Compare versions
         let vg = metadata.latestGamedataVersion === oldMetadata.latestGamedataVersion
@@ -28,7 +32,7 @@ const update = async () => {
         //Update language
         if( !vl || force ) {
             if( debug ) console.log("Fetching new language bundle")
-            let localization = await fetch("http://localhost:"+port+"/pipe/localization/"+metadata.latestLocalizationBundleVersion).then(res => res.text())
+            let localization = await fetch(client+"/pipe/localization/"+metadata.latestLocalizationBundleVersion).then(res => res.text())
 
             //Open the zip in memory
             let zipped = await (new JSZip()).loadAsync(localization, {base64:true});
@@ -69,7 +73,7 @@ const update = async () => {
         //Update gamedata
         if( !vg || force ) {
             if( debug ) console.log("Fetching new gamedata")
-            let gamedata = await fetch("http://localhost:"+port+"/pipe/gamedata/"+metadata.latestGamedataVersion).then(res => res.json())
+            let gamedata = await fetch(client+"/pipe/gamedata/"+metadata.latestGamedataVersion).then(res => res.json())
             for( let dataKey in gamedata ) {
                 try { 
                     if( debug ) console.log("Saving /data/"+dataKey+".json")
@@ -114,8 +118,6 @@ const update = async () => {
             skillIds = null
                
         }
-        
-        delete require.cache[require.resolve("./../data/metadata.json")]
         
         if( debug ) console.log("\n+ Common data is up to date")        
         
