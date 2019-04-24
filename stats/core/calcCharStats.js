@@ -1,45 +1,39 @@
 module.exports = async ( units ) => {
 
-    delete require.cache[require.resolve("./statEnum.js")]
-    delete require.cache[require.resolve("../../common/data/statModSetList.json")]
-    delete require.cache[require.resolve("../../common/data/statProgressionList.json")]
-    delete require.cache[require.resolve("../../common/data/unitsList.json")]
-    delete require.cache[require.resolve("../../common/data/equipmentList.json")]
+    var { stats, base, pct } = require('./statEnum.js')
+    var unitsList = require('../../common/data/unitsList.json')
+    var statProgressionList = require('../../common/data/statProgressionList.json')
+    var equipmentList = require('../../common/data/equipmentList.json')
+    var modSets = require('../../common/data/statModSetList.json')
 
-    let { stats, base, pct } = require('./statEnum.js')
-    let modSets = require('../../common/data/statModSetList.json')
-    let STATS = []
+    var STATS = []
 
     units.filter(u => u.combatType === 1).forEach( toon => {
     
-        let finalStats = {}
+        if( toon.combatType === 2 ) return 
 
-        let unit = require('../../common/data/unitsList.json').find(u => u.id.includes(toon.defId) && u.rarity === toon.rarity)
-        let sProgression = require('../../common/data/statProgressionList.json').find(s => s.id === unit.statProgressionId)
+        var finalStats = {}
+
+        var unit = unitsList.find(u => u.id.includes(toon.defId) && u.rarity === toon.rarity)
+        var sProgression = statProgressionList.find(s => s.id === unit.statProgressionId)
         
-        for( i = 1; i < stats.length; ++i ) {
+        for( var i = 1; i < stats.length; ++i ) {
 
-            let div = 100000000
+            var div = 100000000
 
             //BASE STAT
-            let BS = unit.baseStat.statList.find(s => s.unitStat == i) || {}
-                BS = BS.unscaledDecimalValue / div || 0
-                BS += base[i]
+            var BS = base[i] + ((unit.baseStat.statList.find(s => s.unitStat == i) || {}).unscaledDecimalValue / div || 0)
             
             //STAT CONTRIBUTION
-            let SC = 0
-            let sls = sProgression.stat.statList.find(sd => sd.unitStat == i) || {}
-            SC += sls.unscaledDecimalValue / div || 0
+            var SC = (sProgression.stat.statList.find(sd => sd.unitStat == i) || {}).unscaledDecimalValue / div || 0
 
             //GEAR CONTRIBUTION
-            let GS = unit.unitTierList.find(t => t.tier === toon.gear).baseStat.statList.find(s => s.unitStat == i) || {}
-                GS = GS.unscaledDecimalValue / div || 0
+            var GS = (unit.unitTierList.find(t => t.tier === toon.gear).baseStat.statList.find(s => s.unitStat == i) || {}).unscaledDecimalValue / div || 0
             
             //EQUIPPED GEAR
-            let EQ = toon.equipped.reduce((sum,eq) => {
-                let pc = require('../../common/data/equipmentList.json').find(eqp => eqp.id === eq.equipmentId)
-                let eqs = pc.equipmentStat.statList.find(s => s.unitStat == i) || {}
-                    eqs = eqs.unscaledDecimalValue / div || 0
+            var EQ = toon.equipped.reduce((sum,eq) => {
+                var pc = equipmentList.find(eqp => eqp.id === eq.equipmentId)
+                var eqs = (pc.equipmentStat.statList.find(s => s.unitStat == i) || {}).unscaledDecimalValue / div || 0
                 return sum + eqs
             },0)
 
@@ -50,10 +44,12 @@ module.exports = async ( units ) => {
             finalStats[stats[i]] = { base:BS, gear:EQ, mods:0, final:0, pct:pct[i] }
             
         }
+
+        sProgression = null
         
-        for( i = 1; i < stats.length; ++i ) {
+        for( var i = 1; i < stats.length; ++i ) {
             
-            let div = pct[i] ? 1000000 : 100000000
+            var div = pct[i] ? 1000000 : 100000000
 
             if( i === 1 ) finalStats[stats[i]].base += ( 18.0 * finalStats["Strength"].base )
             if( i === 6 ) finalStats[stats[i]].base += ( 1.4 * finalStats[stats[unit.primaryUnitStat]].base )
@@ -70,11 +66,11 @@ module.exports = async ( units ) => {
             if( i === 18 ) finalStats[stats[i]].base += 0.15
 
             //mods : MODS
-            let setCount = {}
-            let mods = toon.mods.reduce((sum,m) => {
+            var setCount = {}
+            var mods = toon.mods.reduce((sum,m) => {
                 setCount[m.set] = setCount[m.set] || []
                 setCount[m.set].push( m.level )
-                let pri = m.primaryStat.unitStat === i ? m.primaryStat.value : 0
+                var pri = m.primaryStat.unitStat === i ? m.primaryStat.value : 0
                 return sum + pri + m.secondaryStat.reduce((ssum,ss) => {
                     return ssum + ( ss.unitStat === i ? ss.value : 0 )
                 },0)
@@ -82,18 +78,18 @@ module.exports = async ( units ) => {
             
             
             // incorporate set modsets into stats totals
-            let modset = modSets.find(ms => Object.keys(setCount).includes(ms.id) && ms.completeBonus.stat.unitStat === i)
+            var modset = modSets.find(ms => Object.keys(setCount).includes(ms.id) && ms.completeBonus.stat.unitStat === i)
             if( modset && setCount[modset.id].length >= modset.setCount ) {
-                let mult = Math.floor(modset.setCount / setCount[modset.id].length)
-                let maxd = Math.floor(modset.setCount / setCount[modset.id].filter(s => s === 15).length)
+                var mult = Math.floor(modset.setCount / setCount[modset.id].length)
+                var maxd = Math.floor(modset.setCount / setCount[modset.id].filter(s => s === 15).length)
                 mult -= maxd
                 
-                let sdiv = pct[modset.completeBonus.stat.unitStat] ? 1000000 : 100000000
+                var sdiv = pct[modset.completeBonus.stat.unitStat] ? 1000000 : 100000000
                 mods += maxd && maxd > 0 ? modset.completeBonus.stat.unscaledDecimalValue / sdiv * 2 * maxd : 0
                 mods += mult && mult > 0 ? modset.completeBonus.stat.unscaledDecimalValue / sdiv * mult : 0
             }
 
-            let statName = stats[i]
+            var statName = stats[i]
             if (statName.slice(-1) == "%") { // percent stat
                 statName = statName.replace(" %","").trim()
                 
@@ -148,8 +144,8 @@ module.exports = async ( units ) => {
             }
 
         }
-
-        for( i = 1; i < stats.length; ++i ) {
+        
+        for( var i = 1; i < stats.length; ++i ) {
         
             if( i === 21 || i == 22 ) continue
         
@@ -169,7 +165,7 @@ module.exports = async ( units ) => {
                 
                 finalStats[stats[i]].final += finalStats[stats[i]].base + finalStats[stats[i]].gear
                 
-                let nonMod = convertFlatDefToPercent( finalStats[stats[i]].final, toon.level, 1)
+                var nonMod = convertFlatDefToPercent( finalStats[stats[i]].final, toon.level, 1)
                 finalStats[stats[i]].mods = Math.floor(finalStats[stats[i]].mods)
                 finalStats[stats[i]].final = convertFlatDefToPercent( finalStats[stats[i]].final + finalStats[stats[i]].mods, toon.level)
                 finalStats[stats[i]].mods = finalStats[stats[i]].final - nonMod
@@ -187,12 +183,15 @@ module.exports = async ( units ) => {
         
         //console.log( { unit:toon.defId, stats:finalStats } )
         
-        STATS.push({ unit:toon.defId, stats:finalStats })
+        STATS.push({ unit:toon.defId, stats:Object.assign({},finalStats) })
     
+        finalStats = null
+        unit    = null
+
     })
     
     return STATS
-
+    
 }
 
 function convertFlatDefToPercent(value, level = 85, scale = 1) {

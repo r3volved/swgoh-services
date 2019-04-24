@@ -32,6 +32,17 @@ module.exports = async ( fs, debug ) => {
                 value:Number(tl.value)
             }
         })
+        //SHIP MOD TABLES
+        let stars = ["ZERO","ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN"]
+        tables.crewModTable = [[0,0,0,0,0,0,0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0]]
+        for( let s = 1; s < stars.length; ++s ) {
+            let cr = (xpTableList.find(tl => tl.id === 'crew_rating_per_mod_level_'+stars[s].toLowerCase()+'_star') || {}).rowList || []
+            //console.log( stars[s].toLowerCase(), cr.length )
+            for( let l = 1; l < 16; ++l ) {
+                tables.crewModTable[l].push( (cr[l-1] || {}).xp || 0 )
+            }
+        }
+                
         //ABILITY TABLES
         tables.abilityTable = xpTableList.find(tl => tl.id === 'galactic_power_per_ship_ability_level_table').rowList.reduce((acc,i) => {
             acc.push(Number(i.xp))

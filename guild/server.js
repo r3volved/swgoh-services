@@ -13,13 +13,10 @@ app.use((req, res, next) => {
     next();
 });
 
-//Expects (filterale) player.roster - where crew members are among the roster
-var calcShipStats = require('./core/calcShipStats.js')
-app.use('/ship', bodyParser.json({limit:'4mb'}), (req, res) => {
-    return calcShipStats( req.body )
-        .then(stats => JSON.parse(JSON.stringify(stats)))
-        .then(stats => {
-            res.write( JSON.stringify(stats) )
+var fetchGuild = require('./core/fetchGuild.js')
+app.use('/guild/:allycode', (req, res) => {
+    return fetchGuild( req.params.allycode, res )
+        .then(() => {
             return res.end()
         }).catch(e => { 
             console.error(e)
@@ -27,19 +24,17 @@ app.use('/ship', bodyParser.json({limit:'4mb'}), (req, res) => {
         })
 })
 
-//Expects (filterale) player.roster
-var calcCharStats = require('./core/calcCharStats.js')
-app.use('/char', bodyParser.json({limit:'4mb'}), (req, res) => {
-    return calcCharStats( req.body )
-        .then(stats => JSON.parse(JSON.stringify(stats)))
-        .then(stats => {
-            res.write( JSON.stringify(stats) )
+var fetchGuildRoster = require('./core/fetchGuildRoster.js')
+app.use('/roster/:allycode', (req, res) => {
+    return fetchGuildRoster( req.params.allycode, res )
+        .then(() => {
             return res.end()
         }).catch(e => { 
             console.error(e)
             return res.end(JSON.stringify({ error:e.message }))
         })
 })
+
 
 // listen for requests :)
 var listener = app.listen(process.env.PORT, function () {

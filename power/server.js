@@ -2,7 +2,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
-app.use(function(req, res, next) {
+app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     req.ip = req.headers['x-forwarded-for'] 
@@ -11,17 +11,19 @@ app.use(function(req, res, next) {
     req.ip = req.ip.replace('::ffff:','');
     console.log('>> '+req.ip+" >> "+req.url)
     next();
-});
+})
 
 //Expects (filterale) player.roster - ship crew must be included in roster
+var calcGalacticPower = require('./core/calcGalacticPower.js')
 app.use('/gp', bodyParser.json({limit:'4mb'}), (req, res) => {
-    require('./core/calcGalacticPower.js')( req.body )
+    return calcGalacticPower( req.body )
         .then(power => JSON.parse(JSON.stringify(power)))
         .then(power => {
             res.write( JSON.stringify(power) )
-            res.end()
+            return res.end()
         }).catch(e => { 
-            res.end(JSON.stringify({ error:e.message }))
+            console.error(e)
+            return res.end(JSON.stringify({ error:e.message }))
         })
 })
 

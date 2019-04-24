@@ -1,47 +1,49 @@
 module.exports = async ( ships ) => {
 
-    delete require.cache[require.resolve("./statEnum.js")]
-    delete require.cache[require.resolve("../../common/data/index_gpTables.json")]
-    delete require.cache[require.resolve("../../common/data/index_skills.json")]
-    delete require.cache[require.resolve("../../common/data/statProgressionList.json")]
-    delete require.cache[require.resolve("../../common/data/unitsList.json")]
-    
-    let { stats, base, pct } = require('./statEnum.js')
-    let { tables } = require('../../common/data/index_gpTables.json')
-    let STATS = []
+    var { stats, base, pct } = require('./statEnum.js')
+    var { tables } = require('../../common/data/index_gpTables.json')
+    var index_skills = require('../../common/data/index_skills.json')
+    var unitsList = require('../../common/data/unitsList.json')
+    var statProgressionList = require('../../common/data/statProgressionList.json')
+
+    var STATS = []
 
     ships.forEach( ship => {
-    
-        let finalStats = {}
+        
+        if( ship.combatType === 1 ) return 
+        
+        var finalStats = {}
 
         //CREW RATING
         //console.log("CREW:")
-        let CR = ship.crew.reduce((cr, cu) => {
-            let u = cu.unit
+        var CR = ship.crew.reduce((cr, cu) => {
+            var u = cu.unit || ships.find(ru => ru.defId === cu.unitId)
 
-            let uCR = 0
+            var uCR = 0
             uCR += tables.levelTable[u.level]
             uCR += tables.rarityTable[u.rarity]    
-            for( let g = 1; g < u.gear; ++g ) {
+            for( var g = 1; g < u.gear; ++g ) {
             	uCR += tables.gearTable[g] * 6
             }
-            uCR +=tables.gearTable[u.gear] * u.equipped.length
+            uCR += tables.gearTable[u.gear] * u.equipped.length
             u.skills.forEach( s => {
-                let iskill = require('../../common/data/index_skills.json').find(isk => isk.id === s.id)
-                let otag = iskill.tiers[0].powerOverrideTag || ""
+                var iskill = index_skills.find(isk => isk.id === s.id)
+                var otag = iskill.tiers[0].powerOverrideTag || ""
                 if( s.id.includes('contract') || otag.includes('contract') ) {
-                	uCR +=tables.contractTable[(s.tier || 0)]
+                	uCR += tables.contractTable[(s.tier || 0)]
                 } else if( s.id.includes('hardware') || otag.includes('hardware') ) {
-                	uCR +=tables.reinforcementTable[(s.tier || 0)]
+                	uCR += tables.reinforcementTable[(s.tier || 0)]
                 } else {
-                	uCR +=s.tier === 8 && s.isZeta 
+                	uCR += s.tier === 8 && s.isZeta 
                 	    ? tables.abilityTable[s.tier] 
                 	    : tables.abilityTable[(s.tier || 0)]
                 }
             })
             u.mods.forEach(m => {
-                let key = m.pips+":"+m.level+":"+m.tier+":"+m.set
-                uCR +=parseInt(tables.modTable.find(mt => mt.key === key).value)
+                //var key = m.pips+":"+m.level+":"+m.tier+":"+m.set
+                //uCR +=parseInt(tables.modTable.find(mt => mt.key === key).value)
+                uCR += parseInt( tables.crewModTable[m.level][m.pips] )                
+                //console.log( parseInt(tables.modTable.find(mt => mt.key === key).value), parseInt( tables.crewModTable[m.level][m.pips] ) )
             })
 
             return cr + uCR
@@ -50,40 +52,43 @@ module.exports = async ( ships ) => {
 
 
         //SHIP MULTIPLIER
-        let SM = tables.multiplierTable[ship.rarity]
+        var SM = tables.multiplierTable[ship.rarity]
         //console.log("SM: "+SM)
 
-        let unit = require('../../common/data/unitsList.json').find(u => u.id.includes(ship.defId) && u.rarity === ship.rarity)
-        let sProgression = require('../../common/data/statProgressionList.json').find(s => s.id === unit.statProgressionId)
-        let cProgression = require('../../common/data/statProgressionList.json').find(s => s.id === unit.crewContributionTableId)
+        var unit = unitsList.find(u => u.id.includes(ship.defId) && u.rarity === ship.rarity)
+        var sProgression = statProgressionList.find(s => s.id === unit.statProgressionId)
+        var cProgression = statProgressionList.find(s => s.id === unit.crewContributionTableId)
 
         for( i = 1; i < stats.length; ++i ) {
 
             if( stats[i].includes("_") ) continue
 
-            let div = 100000000
+            var div = 100000000
 
             //BASE STAT
-            let BS = unit.baseStat.statList.find(s => s.unitStat == i)
+            var BS = unit.baseStat.statList.find(s => s.unitStat == i)
                 BS = BS ? BS.unscaledDecimalValue / div : 0    
                 BS += base[i]
             
             //STAT CONTRIBUTION
-            let SC = 0
-            let sls = sProgression.stat.statList.find(sd => sd.unitStat == i)
-            SC += sls ? sls.unscaledDecimalValue / div : 0
+            var sls = sProgression.stat.statList.find(sd => sd.unitStat == i)
+            var SC = sls ? sls.unscaledDecimalValue / div : 0
              
-            let slc = cProgression.stat.statList.find(sd => sd.unitStat == i)
-            SC += slc ? slc.unscaledDecimalValue / div : 0
-            
+            var cls = cProgression.stat.statList.find(sd => sd.unitStat == i)
+                SC += cls ? cls.unscaledDecimalValue / div : 0
+             
             //STAT MODIFIERS
-            if( i >= 2 && i <= 4 ) { BS += Math.floor( SC * ship.level ); SC = 0 }
+            if( i >= 2 && i <= 4 ) { 
+                //console.log( unit.baseId, BS, SC * ship.level, sProgression.stat.statList.map(sl => sl.unitStat) )
+                BS += Math.floor( SC * ship.level ); SC = 0 
+            }
             else BS = pct[i] ? BS : Math.floor(BS)
             
             finalStats[stats[i]] = { base:Number(BS), contribution:Number(SC), bonus:0, final:0, pct:pct[i] }
         }
 
-        for( i = 1; i < stats.length; ++i ) {
+
+        for( var i = 1; i < stats.length; ++i ) {
             
             if( stats[i].includes("_") ) continue
 
@@ -99,30 +104,9 @@ module.exports = async ( ships ) => {
         
             if( i === 14 ) finalStats[stats[i]].base += ( 0.4 * finalStats["Agility"].base )
 
-            if( stats[i] === "Defense" ) {
-                finalStats[stats[8]].base += finalStats[stats[i]].base
-                finalStats[stats[9]].base += finalStats[stats[i]].base
-            }
-            
-            if( stats[i] === "Defense %" ) {
-                finalStats[stats[8]].base += finalStats[stats[8]].base * finalStats[stats[i]].base
-                finalStats[stats[9]].base += finalStats[stats[9]].base * finalStats[stats[i]].base
-            }
-
-
         }
-        
-        finalStats["Armor"].base += finalStats["Defense"].base
-        finalStats["Armor"].base += finalStats["Armor"].base * finalStats["Defense %"].base
-        finalStats["Armor"].bonus += finalStats["Defense"].bonus
-        finalStats["Armor"].bonus += finalStats["Armor"].bonus * finalStats["Defense %"].bonus
-
-        finalStats["Resistance"].base += finalStats["Defense"].base
-        finalStats["Resistance"].base += finalStats["Resistance"].base * finalStats["Defense %"].base
-        finalStats["Resistance"].bonus += finalStats["Defense"].bonus
-        finalStats["Resistance"].bonus += finalStats["Resistance"].bonus * finalStats["Defense %"].bonus
-        
-        for( i = 1; i < stats.length; ++i ) {
+                
+        for( var i = 1; i < stats.length; ++i ) {
 
             if( stats[i].includes("_") ) continue
             if( i === 21 || i == 22 ) continue
@@ -140,15 +124,17 @@ module.exports = async ( ships ) => {
                 finalStats[stats[i].slice(0,-6) + "Chance"].base = convertFlatCritToPercent( finalStats[stats[i]].base )
                 finalStats[stats[i].slice(0,-6) + "Chance"].final = convertFlatCritToPercent( finalStats[stats[i]].base + finalStats[stats[i]].bonus )
                 finalStats[stats[i].slice(0,-6) + "Chance"].bonus = finalStats[stats[i].slice(0,-6) + "Chance"].final - finalStats[stats[i].slice(0,-6) + "Chance"].base
+
                 delete finalStats[stats[i].slice(0,-6) + "Chance"].contribution
                 delete finalStats[stats[i]]
                 
             } else if( i === 8 || i == 9 ) {
                 
-                finalStats[stats[i]].final = convertFlatDefToPercent( finalStats[stats[i]].base + finalStats[stats[i]].bonus, ship.level )
-                finalStats[stats[i]].base = convertFlatDefToPercent( finalStats[stats[i]].base, ship.level )
-                finalStats[stats[i]].bonus = finalStats[stats[i]].final - finalStats[stats[i]].base
-                
+                finalStats[stats[i]].bonus = (Number(CR) * Number(SM) * finalStats[stats[i]].contribution) / 1000
+                finalStats[stats[i]].base = convertFlatDefToPercent( finalStats[stats[i]].base, ship.level, 1)     
+                           
+                finalStats[stats[i]].final = finalStats[stats[i]].base + finalStats[stats[i]].bonus
+
                 delete finalStats[stats[i]].contribution
 
             } else {
@@ -167,9 +153,13 @@ module.exports = async ( ships ) => {
         }
 
         //console.log( {unit:ship.defId, stats:finalStats} )
-        
-        STATS.push({unit:ship.defId, stats:finalStats})
+
+        STATS.push({unit:ship.defId, stats:Object.assign({},finalStats) })
     
+        SM = null
+        finalStats = null
+        sProgression = null
+        unit    = null
     })
 
     return STATS
@@ -177,7 +167,7 @@ module.exports = async ( ships ) => {
 }
 
 function convertFlatDefToPercent(value, level = 85, scale = 1) {
-  return ((value / scale)/(level*5 + (value / scale))) * scale;//.toFixed(2);
+  return (value / scale) / (300 + level*5 + (value / scale)) * scale;
 }
 
 function convertFlatCritToPercent(value, scale = 1) {

@@ -2,7 +2,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
-app.use(function(req, res, next) {
+app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     req.ip = req.headers['x-forwarded-for'] 
@@ -14,24 +14,26 @@ app.use(function(req, res, next) {
 });
 
 //Expects any json with localization key values
+var localizationStrings = {}
 app.use('/lang/:language', bodyParser.json({limit:'4mb'}), async (req, res) => {
     try {
-        let dstr = JSON.stringify(req.body)
-        let lang = (req.params.language || 'eng_us').toUpperCase()
+        var dstr = JSON.stringify(req.body)
+        var lang = (req.params.language || 'eng_us').toUpperCase()
 
-        delete require.cache[require.resolve("../common/data/"+lang+".json")]
-        let strings = require("../common/data/"+lang+".json").filter(s => dstr.match(new RegExp("\""+s.id+"\"",'gm')))
-            strings.sort((a,b) => b.id.length - a.id.length)
-            strings.forEach(s => {
-                dstr = dstr.replace(new RegExp( JSON.stringify(s.id), 'gm' ), JSON.stringify(s.value))
-            })
+        if( !localizationStrings[lang] ) localizationStrings[lang] = require("../common/data/"+lang+".json")
         
-        res.write( JSON.stringify(JSON.parse(dstr)) )
+        var strings = localizationStrings[lang].filter(s => dstr.match(new RegExp("\""+s.id+"\"",'gm')))
+        strings.sort((a,b) => b.id.length - a.id.length)
+        strings.forEach(s => {
+            dstr = dstr.replace(new RegExp( JSON.stringify(s.id), 'gm' ), JSON.stringify(s.value))
+        })
+        
+        res.write( JSON.stringify(JSON.parse(dstr)) )        
     } catch(e) {
         res.write(JSON.stringify({ error:e.message }))
         console.log(e)
     }
-    res.end()
+    return res.end()
 })
 
 // listen for requests :)

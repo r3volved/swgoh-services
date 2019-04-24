@@ -1,28 +1,22 @@
 let debug = process.env.DEBUG 
-let iSkills = null
-let gpTables = null
+let iSkills = require('../../common/data/index_skills.json')
+let gpTables = require('../../common/data/index_gpTables.json').tables
 
 module.exports = async ( units ) => {
-
-    delete require.cache[require.resolve("../../common/data/index_skills.json")]
-    delete require.cache[require.resolve("../../common/data/index_gpTables.json")]
     
-    iSkills = require('../../common/data/index_skills.json')
-    gpTables = require('../../common/data/index_gpTables.json').tables
-
-    let GP = []
+    var GP = []
     
-    for( let un of units ) {            
+    for( var un of units ) {            
         if( un.combatType === 2 ) { continue; }
         un.gp = Math.round( await calcCharGP( un ) );
         GP.push({ unit:un.defId, gp:un.gp })
     }											
 
     //Do ship gp
-    for( let un of units ) {
+    for( var un of units ) {
         if( un.combatType === 1 ) { continue; }
         if( un.crew ) {
-            for( let cmem of un.crew ) {
+            for( var cmem of un.crew ) {
 	            let u = units.filter(pr => pr.defId === cmem.unitId);
 	            cmem.gp = u[0].gp;
 	            cmem.cp = await calcCrewRating( cmem.gp, un );				        
@@ -31,9 +25,6 @@ module.exports = async ( units ) => {
         un.gp = Math.round( await calcShipGP( un ) );
         GP.push({ unit:un.defId, gp:un.gp })
     }
-    
-    iSkills = null
-    gpTables = null
     
     return GP
     
@@ -44,28 +35,31 @@ function calcModGP( modList, raw ) {
     try {
         //pips:level:tier:set?
         //1:1:1:0 -> 7:15:5:8
-        let gpMod = 0;
+        var gpMod = 0;
         if( raw ) {
             modList.forEach( m => {
-                let key = m.definitionId.charAt(1)+":"+m.level+":"+m.tier+":"+m.definitionId.charAt(0); 
+                var key = m.definitionId.charAt(1)+":"+m.level+":"+m.tier+":"+m.definitionId.charAt(0); 
                 gpMod += parseInt(gpTables.modTable.find(k => k.key === key).value);
             });
         } else {
             modList.forEach( m => {
-                let key = m.pips+":"+m.level+":"+m.tier+":"+m.set; 
+                var key = m.pips+":"+m.level+":"+m.tier+":"+m.set; 
                 gpMod += parseInt(gpTables.modTable.find(k => k.key === key).value);
             });
         }
         return gpMod;        
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error(e); 
+        return 0    
+    }
 }
 
 function calcAbilityGP( abilityList ) {
     try {
-        let gpAbility = 0;
+        var gpAbility = 0;
         abilityList.forEach( a => {
-            let iskill = iSkills.find(i => i.id === a.id)
-            let otag = iskill.tiers[0].powerOverrideTag || ""
+            var iskill = iSkills.find(i => i.id === a.id)
+            var otag = iskill.tiers[0].powerOverrideTag || ""
             if( a.id.includes('contract') || otag.includes('contract') ) {
             	gpAbility += Number(gpTables.contractTable[(a.tier || 0)]);
             } else if( a.id.includes('hardware') || otag.includes('reinforcement') ) {
@@ -75,18 +69,24 @@ function calcAbilityGP( abilityList ) {
             }
         });
         return gpAbility;        
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error(e); 
+        return 0    
+    }
 }
 
 function calcGearGP( tier, equipped ) {
     try {
-        let gpGear = 0;
-        for( let g = 1; g < tier; ++g ) {
+        var gpGear = 0;
+        for( var g = 1; g < tier; ++g ) {
         	gpGear += Number(gpTables.gearTable[g]) * 6;
         }
         gpGear += Number(gpTables.gearTable[tier]) * equipped.length;
         return gpGear;
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error(e); 
+        return 0    
+    }
 }
 
 
@@ -98,18 +98,21 @@ function calcCharGP( unit ) {
     
         if( !unit ) { return false; }
         
-        const gpModifier  = 1.5;
-        const gpMod       = calcModGP( unit.mods );
-        const gpAbility   = calcAbilityGP( unit.skills );
-        const gpGear      = calcGearGP( unit.gear, unit.equipped );
-        const gpRarity    = gpTables.rarityTable[ unit.rarity ];
-        const gpLevel     = gpTables.levelTable[ unit.level ];
+        var gpModifier  = 1.5;
+        var gpMod       = calcModGP( unit.mods );
+        var gpAbility   = calcAbilityGP( unit.skills );
+        var gpGear      = calcGearGP( unit.gear, unit.equipped );
+        var gpRarity    = gpTables.rarityTable[ unit.rarity ];
+        var gpLevel     = gpTables.levelTable[ unit.level ];
 
         if( debug ) console.log( gpMod, gpAbility, gpGear, gpRarity, gpLevel )
         
         return Math.round(( gpMod + gpAbility + gpGear + gpRarity + gpLevel ) * gpModifier);
                 
-    } catch(e) { console.error(e); }    
+    } catch(e) { 
+        console.error(e); 
+        return 0    
+    }
 }
 
 function calcCrewRating( gp, ship ) {
@@ -117,7 +120,10 @@ function calcCrewRating( gp, ship ) {
     
         return Math.round((gp * gpTables.multiplierTable[ ship.rarity ]) * gpTables.crewSizeTable[ship.crew.length]);
                 
-    } catch(e) { console.error(e); }    
+    } catch(e) { 
+        console.error(e); 
+        return 0    
+    }
 }
 
 
@@ -126,15 +132,15 @@ function calcShipGP( unit ) {
     
         if( !unit || !unit.crew ) { return 'error'; }
         
-        const gpRarity    = parseFloat(gpTables.rarityTable[ unit.rarity ]);
-        const gpCrewSize  = parseFloat(gpTables.crewSizeTable[unit.crew.length]);
-        const gpLevel     = parseFloat(gpTables.levelTable[ unit.level ]);
-        const gpAbility   = parseFloat(calcAbilityGP( unit.skills ));
-        const gpModifier  = parseFloat(gpTables.multiplierTable[unit.rarity]);        
+        var gpRarity    = parseFloat(gpTables.rarityTable[ unit.rarity ]);
+        var gpCrewSize  = parseFloat(gpTables.crewSizeTable[unit.crew.length]);
+        var gpLevel     = parseFloat(gpTables.levelTable[ unit.level ]);
+        var gpAbility   = parseFloat(calcAbilityGP( unit.skills ));
+        var gpModifier  = parseFloat(gpTables.multiplierTable[unit.rarity]);        
         
-        let gpCrewPower = 0;
-        let gpShipPower = 0;
-        let gpCrew = 0;
+        var gpCrewPower = 0;
+        var gpShipPower = 0;
+        var gpCrew = 0;
         
         unit.crew.forEach( cmem => {
         	gpCrewPower += parseFloat(cmem.cp);
@@ -148,6 +154,9 @@ function calcShipGP( unit ) {
         
         return gpCrewPower + gpShipPower;
           
-    } catch(e) { console.error(e); }    
+    } catch(e) { 
+        console.error(e); 
+        return 0    
+    }
 }
 
