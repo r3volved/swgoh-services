@@ -15,18 +15,21 @@ app.use((req, res, next) => {
 
 //Expects any json with localization key values
 var localizationStrings = {}
-app.use('/lang/:language', bodyParser.json({limit:'4mb'}), async (req, res) => {
+app.use('/lang/:language', bodyParser.json({limit:'50mb'}), async (req, res) => {
     try {
         var dstr = JSON.stringify(req.body)
         var lang = (req.params.language || 'eng_us').toUpperCase()
 
-        if( !localizationStrings[lang] ) localizationStrings[lang] = require("../common/data/"+lang+".json")
+        if( !localizationStrings[lang] ) {
+            localizationStrings[lang] = require("../common/data/"+lang+".json")
+            localizationStrings[lang].sort((a,b) => b.id.length - a.id.length)
+        }
         
-        var strings = localizationStrings[lang].filter(s => dstr.match(new RegExp("\""+s.id+"\"",'gm')))
-        strings.sort((a,b) => b.id.length - a.id.length)
+        var strings = localizationStrings[lang].filter(s => dstr.includes(s.id))        
         strings.forEach(s => {
             dstr = dstr.replace(new RegExp( JSON.stringify(s.id), 'gm' ), JSON.stringify(s.value))
         })
+        strings = null
         
         res.write( JSON.stringify(JSON.parse(dstr)) )        
     } catch(e) {

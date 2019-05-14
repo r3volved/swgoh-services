@@ -9,7 +9,7 @@ app.use((req, res, next) => {
         ? req.headers['x-forwarded-for'].split(/\s*,\s*/)[0] 
         : req.connection.remoteAddress;
     req.ip = req.ip.replace('::ffff:','');
-    console.log('>> '+req.ip+" >> "+req.url)
+    //console.log('>> '+req.ip+" >> "+req.url)
     next();
 });
 

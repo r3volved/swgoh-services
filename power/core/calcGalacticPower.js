@@ -3,31 +3,33 @@ let iSkills = require('../../common/data/index_skills.json')
 let gpTables = require('../../common/data/index_gpTables.json').tables
 
 module.exports = async ( units ) => {
-    
     var GP = []
-    
-    for( var un of units ) {            
-        if( un.combatType === 2 ) { continue; }
-        un.gp = Math.round( await calcCharGP( un ) );
-        GP.push({ unit:un.defId, gp:un.gp })
-    }											
+    try {    
+        
+        for( var un of units ) {            
+            if( un.combatType === 2 ) { continue; }
+            un.gp = Math.round( await calcCharGP( un ) );
+            GP.push({ unit:un.defId, gp:un.gp })
+        }											
 
-    //Do ship gp
-    for( var un of units ) {
-        if( un.combatType === 1 ) { continue; }
-        if( un.crew ) {
-            for( var cmem of un.crew ) {
-	            let u = units.filter(pr => pr.defId === cmem.unitId);
-	            cmem.gp = u[0].gp;
-	            cmem.cp = await calcCrewRating( cmem.gp, un );				        
+        //Do ship gp
+        for( var un of units ) {
+            if( un.combatType === 1 ) { continue; }
+            if( un.crew ) {
+                for( var cmem of un.crew ) {
+	                let u = units.filter(pr => pr.defId === cmem.unitId);
+	                cmem.gp = u[0].gp || 0;
+	                cmem.cp = await calcCrewRating( cmem.gp, un );				        
+                }
             }
+            un.gp = Math.round( await calcShipGP( un ) );
+            GP.push({ unit:un.defId, gp:un.gp })
         }
-        un.gp = Math.round( await calcShipGP( un ) );
-        GP.push({ unit:un.defId, gp:un.gp })
-    }
-    
+        
+    } catch(e) { 
+        console.error(e); 
+    }    
     return GP
-    
 }
 
 

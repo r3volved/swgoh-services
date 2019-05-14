@@ -14,7 +14,7 @@ module.exports = async ( units ) => {
 
         var finalStats = {}
 
-        var unit = unitsList.find(u => u.id.includes(toon.defId) && u.rarity === toon.rarity)
+        var unit = unitsList.find(u => u.baseId === toon.defId && u.rarity === toon.rarity)
         var sProgression = statProgressionList.find(s => s.id === unit.statProgressionId)
 
         for( var i = 1; i < stats.length; ++i ) {
@@ -28,7 +28,8 @@ module.exports = async ( units ) => {
             var SC = (sProgression.stat.statList.find(sd => sd.unitStat == i) || {}).unscaledDecimalValue / div || 0
 
             //GEAR CONTRIBUTION
-            var GS = (unit.unitTierList.find(t => t.tier === toon.gear).baseStat.statList.find(s => s.unitStat == i) || {}).unscaledDecimalValue / div || 0
+            if( !unit.unitTierList.find(t => t.tier === toon.gear) ) console.log( "ID ERROR:"+unit.baseId )
+            var GS = unit.unitTierList.find(t => t.tier === toon.gear) ? (unit.unitTierList.find(t => t.tier === toon.gear).baseStat.statList.find(s => s.unitStat == i) || {}).unscaledDecimalValue / div : 0
 
             //EQUIPPED GEAR
             var EQ = toon.equipped.reduce((sum,eq) => {
@@ -76,13 +77,15 @@ module.exports = async ( units ) => {
                 },0)
             },0) || 0
 
-
             // incorporate set modsets into stats totals
             var modset = modSets.find(ms => Object.keys(setCount).includes(ms.id) && ms.completeBonus.stat.unitStat === i)
             if( modset && setCount[modset.id].length >= modset.setCount ) {
-                var mult = Math.floor(modset.setCount / setCount[modset.id].length)
-                var maxd = Math.floor(modset.setCount / setCount[modset.id].filter(s => s === 15).length)
+                var mult = Math.floor(setCount[modset.id].length / modset.setCount)
+                var maxd = Math.floor(setCount[modset.id].filter(s => s === 15).length / modset.setCount)
                 mult -= maxd
+
+                //if( modset && stats[i].includes("Health") && toon.defId.startsWith("G") ) 
+                //    console.log( toon.defId, stats[i], modset.setCount, mult, maxd )
 
                 var sdiv = pct[modset.completeBonus.stat.unitStat] ? 1000000 : 100000000
                 mods += maxd && maxd > 0 ? modset.completeBonus.stat.unscaledDecimalValue / sdiv * 2 * maxd : 0

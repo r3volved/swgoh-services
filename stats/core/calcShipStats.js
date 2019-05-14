@@ -13,39 +13,43 @@ module.exports = async ( ships ) => {
         if( ship.combatType === 1 ) return
 
         var finalStats = {}
-
+try {
         //CREW RATING
         //console.log("CREW:")
         var CR = ship.crew.reduce((cr, cu) => {
-            var u = cu.unit || ships.find(ru => ru.defId === cu.unitId)
-
+            var u = ships.find(ru => ru.defId === cu.unitId) || cu.unit
             var uCR = 0
-            uCR += tables.levelTable[u.level]
-            uCR += tables.rarityTable[u.rarity]
-            for( var g = 1; g < u.gear; ++g ) {
-            	uCR += tables.gearTable[g] * 6
+            if( u ) {
+                uCR += tables.levelTable[(u.level || 0)]
+                uCR += tables.rarityTable[(u.rarity || 0)]
+                for( var g = 1; g < (u.gear || 0); ++g ) {
+                	uCR += tables.gearTable[g] * 6
+                }
+                uCR += tables.gearTable[(u.gear || 0)] * (u.equipped ? u.equipped.length : 0)
+                if( u.skills ) {
+                    u.skills.forEach( s => {
+                      uCR += tables.abilityTable[s.tier]
+                    })
+                }
+                if( u.mods ) {
+                    u.mods.forEach(m => {
+                        //var key = m.pips+":"+m.level+":"+m.tier+":"+m.set
+                        //uCR +=parseInt(tables.modTable.find(mt => mt.key === key).value)
+                        uCR += parseInt( tables.crewModTable[m.level][m.pips] )
+                        //console.log( parseInt(tables.modTable.find(mt => mt.key === key).value), parseInt( tables.crewModTable[m.level][m.pips] ) )
+                    })
+                }
             }
-            uCR += tables.gearTable[u.gear] * u.equipped.length
-            u.skills.forEach( s => {
-              uCR += tables.abilityTable[s.tier]
-            })
-            u.mods.forEach(m => {
-                //var key = m.pips+":"+m.level+":"+m.tier+":"+m.set
-                //uCR +=parseInt(tables.modTable.find(mt => mt.key === key).value)
-                uCR += parseInt( tables.crewModTable[m.level][m.pips] )
-                //console.log( parseInt(tables.modTable.find(mt => mt.key === key).value), parseInt( tables.crewModTable[m.level][m.pips] ) )
-            })
-
             return cr + uCR
         },0)
         //console.log("CR: "+CR)
-
+} catch(e) { console.error(e) }
 
         //SHIP MULTIPLIER
         var SM = tables.multiplierTable[ship.rarity]
         //console.log("SM: "+SM)
 
-        var unit = unitsList.find(u => u.id.includes(ship.defId) && u.rarity === ship.rarity)
+        var unit = unitsList.find(u => u.baseId === ship.defId && u.rarity === ship.rarity)
         var sProgression = statProgressionList.find(s => s.id === unit.statProgressionId)
         var cProgression = statProgressionList.find(s => s.id === unit.crewContributionTableId)
 
