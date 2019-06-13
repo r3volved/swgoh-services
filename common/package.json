@@ -9,9 +9,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "api-swgoh-help": "^3.3.0",
     "jszip": "^3.2.1",
     "node-fetch": "^2.3.0",
+    "promisify": "0.0.3",
     "reconnecting-websocket": "^4.1.10",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4",
     "ws": "^6.2.1"
   }
 }
