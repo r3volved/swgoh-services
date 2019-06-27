@@ -9,7 +9,7 @@ app.use((req, res, next) => {
         ? req.headers['x-forwarded-for'].split(/\s*,\s*/)[0] 
         : req.connection.remoteAddress;
     req.ip = req.ip.replace('::ffff:','');
-    console.log('>> '+req.ip+" >> "+req.url)
+    //console.log('>> '+req.ip+" >> "+req.url)
     next();
 });
 
@@ -19,9 +19,9 @@ app.use('/lang/:language', bodyParser.json({limit:'50mb'}), async (req, res) => 
     try {
         var dstr = JSON.stringify(req.body)
         var lang = (req.params.language || 'eng_us').toUpperCase()
-
+        
         if( !localizationStrings[lang] ) {
-            localizationStrings[lang] = require("../common/data/"+lang+".json")
+            localizationStrings[lang] = JSON.parse((require('fs').readFileSync("../common/data/"+lang+".json")).toString())
             localizationStrings[lang].sort((a,b) => b.id.length - a.id.length)
         }
         
@@ -37,6 +37,12 @@ app.use('/lang/:language', bodyParser.json({limit:'50mb'}), async (req, res) => 
         console.log(e)
     }
     return res.end()
+})
+
+app.use('/update/:language', (req, res) => {
+    var lang = (req.params.language || 'eng_us').toUpperCase()
+    localizationStrings[lang] = JSON.parse((require('fs').readFileSync("../common/data/"+lang+".json")).toString())
+    localizationStrings[lang].sort((a,b) => b.id.length - a.id.length)
 })
 
 // listen for requests :)
