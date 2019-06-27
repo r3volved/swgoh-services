@@ -22,7 +22,7 @@ const update = async () => {
         } catch(e) {}
         
         if( debug ) console.log("Fetching metadata")
-        let metadata = await fetch(client+"/pipe/metadata").then(res => res.json())
+        let metadata = await fetch(client+"/swapi/metadata?nocon=true").then(res => res.json())
         
         //Compare versions
         let vg = metadata.latestGamedataVersion === oldMetadata.latestGamedataVersion
@@ -32,7 +32,7 @@ const update = async () => {
         //Update language
         if( !vl || force ) {
             if( debug ) console.log("Fetching new language bundle")
-            let localization = await fetch(client+"/pipe/localization/"+metadata.latestLocalizationBundleVersion).then(res => res.text())
+            let localization = await fetch(client+"/swapi/localization/"+metadata.latestLocalizationBundleVersion+"?nocon=true").then(res => res.text())
 
             //Open the zip in memory
             let zipped = await (new JSZip()).loadAsync(localization, {base64:true});
@@ -73,7 +73,7 @@ const update = async () => {
         //Update gamedata
         if( !vg || force ) {
             if( debug ) console.log("Fetching new gamedata")
-            let gamedata = await fetch(client+"/pipe/gamedata/"+metadata.latestGamedataVersion).then(res => res.json())
+            let gamedata = await fetch(client+"/swapi/gamedata/"+metadata.latestGamedataVersion+"?nocon=true").then(res => res.json())
             for( let dataKey in gamedata ) {
                 try { 
                     if( debug ) console.log("Saving /data/"+dataKey+".json")
@@ -107,7 +107,7 @@ const update = async () => {
         if( updated || index ) {
             
             //Build unit index and get skill id's for attainable units
-            let skillIds = await require('./index-units.js')( fs, debug )          
+            let skillIds = await require('./index-units.js')( fs, debug )
             
             //Build skill index from ids - merge skills with abilities 
             await require('./index-skills.js')( fs, skillIds, debug )

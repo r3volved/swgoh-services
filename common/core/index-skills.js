@@ -4,8 +4,11 @@ module.exports = async ( fs, idList, debug ) => {
         //Update skills-indexing
         if( debug ) console.log("Updating skill indexes")
 
-        delete require.cache[require.resolve("./../data/skillList.json")]
-        delete require.cache[require.resolve("./../data/abilityList.json")]
+        try { delete require.cache[require.resolve("./../data/skillList.json")] }
+        catch(e) {}
+        
+        try { delete require.cache[require.resolve("./../data/abilityList.json")] }
+        catch(e) {}
         
         let abilities = []
         if( debug ) console.log("Requiring /data/abilityList.json")
@@ -21,20 +24,31 @@ module.exports = async ( fs, idList, debug ) => {
             if( debug ) console.error("! Could not find /data/skillList.json")
         }
 
-        skills = skills.filter(s => idList.includes(s.id)).map(s => {
+        skills = skills.filter(s => idList.find(idl => idl.skill === s.id)).map(s => {
             let ab = abilities.find(a => a.id === s.abilityReference)
             for( let i = 0; i < s.tierList.length; ++i) { 
                 ab.tierList[i].powerOverrideTag = s.tierList[i].powerOverrideTag 
             }
+            let unitId = (idList.find(idl => idl.skill === s.id) || {}).unitId
         
-            return {
+            return JSON.parse(JSON.stringify({
                 id:s.id,
+                unitId:unitId,
+                abilityId:s.abilityReference,
                 nameKey:ab.nameKey,
                 isZeta:s.isZeta,
                 tiers:ab.tierList,
                 type:ab.abilityType
-            }
+            }))
         })
+
+        abilities = null
+        
+        skills = await require('node-fetch')("http://localhost:3203/lang/eng_us", { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify( skills )
+        }).then(res => res.json())
 
         try { 
             if( debug ) console.log("Saving /data/index_skills.json")

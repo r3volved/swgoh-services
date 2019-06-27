@@ -4,10 +4,12 @@ module.exports = async ( fs, debug ) => {
         //Update units-indexing
         if( debug ) console.log("Updating unit indexes")
         
-        delete require.cache[require.resolve("./../data/unitsList.json")]
-
         let units = []
         if( debug ) console.log("Requiring /data/unitsList.json")
+        
+        try { delete require.cache[require.resolve("./../data/unitsList.json")] }
+        catch(e) {}
+
         try { units = require('./../data/unitsList.json') }
         catch(e) {
             if( debug ) console.error("! Could not find /data/unitsList.json")
@@ -20,22 +22,34 @@ module.exports = async ( fs, debug ) => {
             return true
         })
         
-        let idList = units.reduce((ids,u) => {
-            ids = ids.concat(u.skillReferenceList.map(s => s.skillId))
-            ids = ids.concat(u.crewList.map(cu => cu.skillReferenceList[0].skillId))
+        let idList = units.reduce((ids,u) => {            
+            ids = ids.concat(u.skillReferenceList.map(s => {
+                return { unitId:u.baseId, skill:s.skillId }
+            }))
+            ids = ids.concat(u.crewList.map(cu => {
+                return { unitId:cu.unitId, skill:cu.skillReferenceList[0].skillId }
+            }))
             return ids
         },[])
-
+                
         units = units.map(u => {
             return {
                 baseId:u.baseId,
                 nameKey:u.nameKey,
                 combatType:u.combatType,
                 categoryIdList:u.categoryIdList,
+                crewList:u.crewList,
                 statProgressionId:u.statProgressionId,
-                crewContributionTableId:u.crewContributionTableId
+                crewContributionTableId:u.crewContributionTableId,
+                primaryUnitStat:u.primaryUnitStat
             }
         })
+        
+        units = await require('node-fetch')("http://localhost:3203/lang/eng_us", { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify( units )
+        }).then(res => res.json())
         
         try { 
             if( debug ) console.log("Saving /data/index_units.json")
