@@ -1,5 +1,5 @@
 let debug = process.env.DEBUG 
-let iSkills = require('../../common/data/index_skills.json')
+//let iSkills = require('../../common/data/index_skills.json')
 let gpTables = require('../../common/data/index_gpTables.json').tables
 
 module.exports = async ( units ) => {
@@ -56,15 +56,15 @@ function calcModGP( modList, raw ) {
     }
 }
 
-function calcAbilityGP( abilityList ) {
+function calcAbilityGP( abilityList, combatType ) {
     try {
         var gpAbility = 0;
         abilityList.forEach( a => {
-            var iskill = iSkills.find(i => i.id === a.id)
-            var otag = iskill.tiers[0].powerOverrideTag || ""
-            if( a.id.includes('contract') || otag.includes('contract') ) {
+            //var iskill = iSkills.find(i => i.id === a.id)
+            //var otag = iskill.tiers[0].powerOverrideTag || ""
+            if( a.tiers === 3 && combatType === 1 ) {
             	gpAbility += Number(gpTables.contractTable[(a.tier || 0)]);
-            } else if( a.id.includes('hardware') || otag.includes('reinforcement') ) {
+            } else if( a.tiers === 3 && combatType === 2 ) {
             	gpAbility += Number(gpTables.reinforcementTable[(a.tier || 0)]);
             } else {
             	gpAbility += a.tier === 8 && a.isZeta ? Number(gpTables.abilityTable[a.tier+1]) : Number(gpTables.abilityTable[(a.tier || 0)]);
@@ -102,7 +102,7 @@ function calcCharGP( unit ) {
         
         var gpModifier  = 1.5;
         var gpMod       = calcModGP( unit.mods );
-        var gpAbility   = calcAbilityGP( unit.skills );
+        var gpAbility   = calcAbilityGP( unit.skills, unit.combatType );
         var gpGear      = calcGearGP( unit.gear, unit.equipped );
         var gpRarity    = gpTables.rarityTable[ unit.rarity ];
         var gpLevel     = gpTables.levelTable[ unit.level ];
