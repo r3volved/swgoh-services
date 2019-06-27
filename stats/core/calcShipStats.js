@@ -8,9 +8,7 @@ module.exports = async ( ships ) => {
 
     var STATS = []
 
-    ships.forEach( ship => {
-
-        if( ship.combatType === 1 ) return
+    ships.filter(s => s.combatType === 2).forEach( ship => {
 
         var finalStats = {}
 try {
@@ -60,20 +58,20 @@ try {
             var div = 100000000
 
             //BASE STAT
-            var BS = unit.baseStat.statList.find(s => s.unitStat == i)
+            var BS = unit.baseStat.statList.find(s => s.unitStatId == i)
                 BS = BS ? BS.unscaledDecimalValue / div : 0
                 BS += base[i]
 
             //STAT CONTRIBUTION
-            var sls = sProgression.stat.statList.find(sd => sd.unitStat == i)
+            var sls = sProgression.stat.statList.find(sd => sd.unitStatId == i)
             var SC = sls ? sls.unscaledDecimalValue / div : 0
 
-            var cls = cProgression.stat.statList.find(sd => sd.unitStat == i)
+            var cls = cProgression.stat.statList.find(sd => sd.unitStatId == i)
                 SC += cls ? cls.unscaledDecimalValue / div : 0
 
             //STAT MODIFIERS
             if( i >= 2 && i <= 4 ) {
-                //console.log( unit.baseId, BS, SC * ship.level, sProgression.stat.statList.map(sl => sl.unitStat) )
+                //console.log( unit.baseId, BS, SC * ship.level, sProgression.stat.statList.map(sl => sl.unitStatId) )
                 BS += Math.floor( SC * ship.level ); SC = 0
             }
             else BS = pct[i] ? BS : Math.floor(BS)
