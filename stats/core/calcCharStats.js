@@ -22,19 +22,19 @@ module.exports = async ( units ) => {
             var div = 100000000
 
             //BASE STAT
-            var BS = base[i] + ((unit.baseStat.statList.find(s => s.unitStat == i) || {}).unscaledDecimalValue / div || 0)
+            var BS = base[i] + ((unit.baseStat.statList.find(s => s.unitStatId == i) || {}).unscaledDecimalValue / div || 0)
 
             //STAT CONTRIBUTION
-            var SC = (sProgression.stat.statList.find(sd => sd.unitStat == i) || {}).unscaledDecimalValue / div || 0
+            var SC = (sProgression.stat.statList.find(sd => sd.unitStatId == i) || {}).unscaledDecimalValue / div || 0
 
             //GEAR CONTRIBUTION
             if( !unit.unitTierList.find(t => t.tier === toon.gear) ) console.log( "ID ERROR:"+unit.baseId )
-            var GS = unit.unitTierList.find(t => t.tier === toon.gear) ? (unit.unitTierList.find(t => t.tier === toon.gear).baseStat.statList.find(s => s.unitStat == i) || {}).unscaledDecimalValue / div : 0
+            var GS = unit.unitTierList.find(t => t.tier === toon.gear) ? (unit.unitTierList.find(t => t.tier === toon.gear).baseStat.statList.find(s => s.unitStatId == i) || {}).unscaledDecimalValue / div : 0
 
             //EQUIPPED GEAR
             var EQ = toon.equipped.reduce((sum,eq) => {
                 var pc = equipmentList.find(eqp => eqp.id === eq.equipmentId)
-                var eqs = (pc.equipmentStat.statList.find(s => s.unitStat == i) || {}).unscaledDecimalValue / div || 0
+                var eqs = (pc.equipmentStat.statList.find(s => s.unitStatId == i) || {}).unscaledDecimalValue / div || 0
                 return sum + eqs
             },0)
 
@@ -78,7 +78,7 @@ module.exports = async ( units ) => {
             },0) || 0
 
             // incorporate set modsets into stats totals
-            var modset = modSets.find(ms => Object.keys(setCount).includes(ms.id) && ms.completeBonus.stat.unitStat === i)
+            var modset = modSets.find(ms => Object.keys(setCount).includes(ms.id) && ms.completeBonus.stat.unitStatId === i)
             if( modset && setCount[modset.id].length >= modset.setCount ) {
                 var mult = Math.floor(setCount[modset.id].length / modset.setCount)
                 var maxd = Math.floor(setCount[modset.id].filter(s => s === 15).length / modset.setCount)
@@ -87,7 +87,7 @@ module.exports = async ( units ) => {
                 //if( modset && stats[i].includes("Health") && toon.defId.startsWith("G") ) 
                 //    console.log( toon.defId, stats[i], modset.setCount, mult, maxd )
 
-                var sdiv = pct[modset.completeBonus.stat.unitStat] ? 1000000 : 100000000
+                var sdiv = pct[modset.completeBonus.stat.unitStatId] ? 1000000 : 100000000
                 mods += maxd && maxd > 0 ? modset.completeBonus.stat.unscaledDecimalValue / sdiv * 2 * maxd : 0
                 mods += mult && mult > 0 ? modset.completeBonus.stat.unscaledDecimalValue / sdiv * mult : 0
             }
@@ -115,6 +115,9 @@ module.exports = async ( units ) => {
                     case "Critical Damage":
                         finalStats[statName].mods += finalStats[statName].base * mods
                         break;
+                    case "Critical Avoidance":
+                        finalStats[statName].mods += finalStats[statName].base * mods
+                        break;
                     default:
                         finalStats[statName].mods += finalStats[statName].base * mods
                 }
@@ -139,6 +142,9 @@ module.exports = async ( units ) => {
                     case "Potency":
                     case "Tenacity":
                     case "Critical Damage":
+                        finalStats[statName].mods += mods / 100
+                        break;
+                    case "Critical Avoidance":
                         finalStats[statName].mods += mods / 100
                         break;
                     default:

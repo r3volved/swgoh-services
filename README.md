@@ -35,6 +35,8 @@ The common service accepts in addition these environment variables:
 * THROTTLE - defaults to 500 msec. Used to throttle requests to the premium client to comply with the 2 requests / second constraint
 * USER - (optional) api.swgoh.help account password
 * PASS - (optional) api.swgoh.help account password
+* VERSION - (optional) accepts a string of the premium client version used, ie: 2.3.0, to preserve the /pipe parameter behavior, default is none for 2.4.0+ /swapi behavior
+* LANG_PORT - (optional) accepts the port that the localization service is running on
 
 Do not specify the user and password if you would like to use the premium client.
 
@@ -47,6 +49,7 @@ const {result} = await swgoh.fetchPlayer({
 let player = result[0];
 let charStats;
 let shipStats;
+let rosterGp;
 
 // Get the stats for all the characters
 charStats =  await nodeFetch("http://localhost:3201/char", {
@@ -56,11 +59,18 @@ charStats =  await nodeFetch("http://localhost:3201/char", {
     body: JSON.stringify(player.roster.filter(u => u.combatType === 1))
 }).then(res => res.json());
 
-// Then get all the stats for the ships (coming soon tm)
+// then get all the stats for the ships
 shipStats = await nodeFetch("http://localhost:3201/ship", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     // combatType 2 is ships
     body: JSON.stringify(player.roster.filter(u => u.combatType === 2))
+}).then(res => res.json());
+
+// grab the GP for each unit in the roster
+rosterGp = await nodeFetch("http://localhost:3202/gp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(player.roster)
 }).then(res => res.json());
 ```

@@ -4,8 +4,11 @@ module.exports = async ( fs, debug ) => {
         //Update skills-indexing
         if( debug ) console.log("Updating GP table indexes")
 
-        delete require.cache[require.resolve("./../data/tableList.json")]
-        delete require.cache[require.resolve("./../data/xpTableList.json")]
+        try { delete require.cache[require.resolve("./../data/tableList.json")] }
+        catch(e) {}
+        
+        try { delete require.cache[require.resolve("./../data/xpTableList.json")] }
+        catch(e) {}
         
         let tables = {}
         

@@ -14,6 +14,21 @@ app.use((req, res, next) => {
 });
 
 //Expects (filterale) player.roster - where crew members are among the roster
+var calcStats = require('./core/calcStats.js')
+app.use('/stats', bodyParser.json({limit:'4mb'}), (req, res) => {
+    return calcStats( req.body )
+        .then(stats => JSON.parse(JSON.stringify(stats)))
+        .then(stats => {
+            //console.log(stats)
+            res.write( JSON.stringify(stats) )
+            return res.end()
+        }).catch(e => { 
+            console.error(e)
+            return res.end(JSON.stringify({ error:e.message }))
+        })
+})
+
+//Expects (filterale) player.roster - where crew members are among the roster
 var calcShipStats = require('./core/calcShipStats.js')
 app.use('/ship', bodyParser.json({limit:'4mb'}), (req, res) => {
     return calcShipStats( req.body )
