@@ -1,5 +1,6 @@
 let debug = process.env.DEBUG
-//let iSkills = require('../../common/data/index_skills.json')
+
+let iSkills = require('../../common/data/index_skills.json')
 let gpTables = require('../../common/data/index_gpTables.json').tables
 
 module.exports = async ( units ) => {
@@ -8,7 +9,7 @@ module.exports = async ( units ) => {
 
         for( var un of units ) {
             if( un.combatType === 2 ) { continue; }
-            un.gp = calcCharGP( un );
+                un.gp = calcCharGP( un );
             GP.push({ unit:un.defId, gp:un.gp })
         }
 
@@ -60,11 +61,16 @@ function calcAbilityGP( abilityList, combatType ) {
     try {
         var gpAbility = 0;
         abilityList.forEach( a => {
-            //var iskill = iSkills.find(i => i.id === a.id)
-            //var otag = iskill.tiers[0].powerOverrideTag || ""
-            if( a.tiers === 3 && combatType === 1 ) {
+            let iskill
+            let otag
+            if (!a.tiers) {
+                iskill = iSkills.find(i => i.id === a.id)
+                otag = iskill.tiers[0].powerOverrideTag || ""
+            }
+
+            if( (a.tiers === 3 && combatType === 1) || ( otag && (a.id.includes('contract') || otag.includes('contract'))) ) {
             	gpAbility += Number(gpTables.contractTable[(a.tier || 0)]);
-            } else if( a.tiers === 3 && combatType === 2 ) {
+            } else if( (a.tiers === 3 && combatType === 2) || (otag && (a.id.includes('hardware') || otag.includes('reinforcement'))) ) {
             	gpAbility += Number(gpTables.reinforcementTable[(a.tier-1 || 0)]);
             } else {
             	gpAbility += a.tier === 8 && a.isZeta ? Number(gpTables.abilityTable[a.tier+1]) : Number(gpTables.abilityTable[(a.tier || 0)]);
@@ -77,13 +83,23 @@ function calcAbilityGP( abilityList, combatType ) {
     }
 }
 
+function getGearGp(tier) {
+    let gp = 0;
+
+    if (tier < gpTables.gearTable.length) {
+        gp = gpTables.gearTable[tier];
+    }
+
+    return gp;
+}
+
 function calcGearGP( tier, equipped ) {
     try {
         var gpGear = 0;
         for( var g = 1; g < tier; ++g ) {
-        	gpGear += Number(gpTables.gearTable[g]) * 6;
+        	gpGear += Number(getGearGp(g)) * 6;
         }
-        gpGear += Number(gpTables.gearTable[tier]) * equipped.length;
+        gpGear += Number(getGearGp(tier)) * equipped.length;
         return gpGear;
     } catch(e) {
         console.error(e);
