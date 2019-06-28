@@ -1,3 +1,4 @@
+common/data/*.json
 # Logs
 logs
 *.log
