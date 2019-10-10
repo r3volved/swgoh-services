@@ -11,37 +11,39 @@ module.exports = async ( ships ) => {
     ships.filter(s => s.combatType === 2).forEach( ship => {
 
         var finalStats = {}
-try {
-        //CREW RATING
-        //console.log("CREW:")
-        var CR = ship.crew.reduce((cr, cu) => {
-            var u = ships.find(ru => ru.defId === cu.unitId) || cu.unit
-            var uCR = 0
-            if( u ) {
-                uCR += tables.levelTable[(u.level || 0)]
-                uCR += tables.rarityTable[(u.rarity || 0)]
-                for( var g = 1; g < (u.gear || 0); ++g ) {
-                	uCR += tables.gearTable[g] * 6
-                }
-                uCR += tables.gearTable[(u.gear || 0)] * (u.equipped ? u.equipped.length : 0)
-                if( u.skills ) {
-                    u.skills.forEach( s => {
-                      uCR += tables.abilityTable[s.tier]
-                    })
-                }
-                if( u.mods ) {
-                    u.mods.forEach(m => {
-                        //var key = m.pips+":"+m.level+":"+m.tier+":"+m.set
-                        //uCR +=parseInt(tables.modTable.find(mt => mt.key === key).value)
-                        uCR += parseInt( tables.crewModTable[m.level][m.pips] )
-                        //console.log( parseInt(tables.modTable.find(mt => mt.key === key).value), parseInt( tables.crewModTable[m.level][m.pips] ) )
-                    })
-                }
+        try {
+            //CREW RATING
+            //console.log("CREW:")
+            if (Array.isArray(ship.crew)) {
+                var CR = ship.crew.reduce((cr, cu) => {
+                    var u = ships.find(ru => ru.defId === cu.unitId) || cu.unit
+                    var uCR = 0
+                    if( u ) {
+                        uCR += tables.levelTable[(u.level || 0)]
+                        uCR += tables.rarityTable[(u.rarity || 0)]
+                        for( var g = 1; g < (u.gear || 0); ++g ) {
+                            uCR += tables.gearTable[g] * 6
+                        }
+                        uCR += tables.gearTable[(u.gear || 0)] * (u.equipped ? u.equipped.length : 0)
+                        if( u.skills ) {
+                            u.skills.forEach( s => {
+                                uCR += tables.abilityTable[s.tier]
+                            })
+                        }
+                        if( u.mods ) {
+                            u.mods.forEach(m => {
+                                //var key = m.pips+":"+m.level+":"+m.tier+":"+m.set
+                                //uCR +=parseInt(tables.modTable.find(mt => mt.key === key).value)
+                                uCR += parseInt( tables.crewModTable[m.level][m.pips] )
+                                //console.log( parseInt(tables.modTable.find(mt => mt.key === key).value), parseInt( tables.crewModTable[m.level][m.pips] ) )
+                            })
+                        }
+                    }
+                    return cr + uCR
+                },0)
             }
-            return cr + uCR
-        },0)
-        //console.log("CR: "+CR)
-} catch(e) { console.error(e) }
+            //console.log("CR: "+CR)
+        } catch(e) { console.error(e) }
 
         //SHIP MULTIPLIER
         var SM = tables.multiplierTable[ship.rarity]
@@ -59,15 +61,15 @@ try {
 
             //BASE STAT
             var BS = unit.baseStat.statList.find(s => s.unitStatId == i)
-                BS = BS ? BS.unscaledDecimalValue / div : 0
-                BS += base[i]
+            BS = BS ? BS.unscaledDecimalValue / div : 0
+            BS += base[i]
 
             //STAT CONTRIBUTION
             var sls = sProgression.stat.statList.find(sd => sd.unitStatId == i)
             var SC = sls ? sls.unscaledDecimalValue / div : 0
 
             var cls = cProgression.stat.statList.find(sd => sd.unitStatId == i)
-                SC += cls ? cls.unscaledDecimalValue / div : 0
+            SC += cls ? cls.unscaledDecimalValue / div : 0
 
             //STAT MODIFIERS
             if( i >= 2 && i <= 4 ) {
@@ -122,10 +124,10 @@ try {
 
             } else if( i === 8 || i == 9 ) {
 
-              finalStats[stats[i]].final = convertFlatDefToPercent(finalStats[stats[i]].base + Math.floor(Number(CR) * Number(SM) * finalStats[stats[i]].contribution), ship.level, 1)
-              finalStats[stats[i]].base = convertFlatDefToPercent( finalStats[stats[i]].base, ship.level, 1)
-              finalStats[stats[i]].bonus = finalStats[stats[i]].final - finalStats[stats[i]].base
-              delete finalStats[stats[i]].contribution
+                finalStats[stats[i]].final = convertFlatDefToPercent(finalStats[stats[i]].base + Math.floor(Number(CR) * Number(SM) * finalStats[stats[i]].contribution), ship.level, 1)
+                finalStats[stats[i]].base = convertFlatDefToPercent( finalStats[stats[i]].base, ship.level, 1)
+                finalStats[stats[i]].bonus = finalStats[stats[i]].final - finalStats[stats[i]].base
+                delete finalStats[stats[i]].contribution
 
             } else {
 
@@ -158,9 +160,9 @@ try {
 }
 
 function convertFlatDefToPercent(value, level = 85, scale = 1) {
-  return (value / scale) / (300 + level*5 + (value / scale)) * scale;
+    return (value / scale) / (300 + level*5 + (value / scale)) * scale;
 }
 
 function convertFlatCritToPercent(value, scale = 1) {
-  return ((value / scale)/2400 + 0.1) * scale;//.toFixed(4);
+    return ((value / scale)/2400 + 0.1) * scale;//.toFixed(4);
 }

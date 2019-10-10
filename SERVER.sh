@@ -3,6 +3,9 @@
 #SET UPDATE HOOK NAME
 hookname="Common Data Update Hook"
 
+#SET YOUR HOST (If not localhot)
+host="http://localhost"
+
 #SET YOUR PORTS
 cliport=3110
 statport=3201
@@ -19,13 +22,13 @@ echo "Cleaning pm2 ..."
   pm2 delete common >>/dev/null
   pm2 delete stats >>/dev/null
   pm2 delete gpower >>/dev/null
-  pm2 delete language >>/dev/null  
-) >>/dev/null 
+  pm2 delete language >>/dev/null
+) >>/dev/null
 
 #Start common data service
 echo "Starting common data ..."
 cd common
-INIT=true DEBUG=true PORT=${cliport} NAME=${hookname} pm2 start server.js --name="common"
+INIT=true DEBUG=true CLIENT="$host:$cliport" NAME=${hookname} pm2 start server.js --name="common"
 cd ..
 
 #Start stats service

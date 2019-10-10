@@ -84,7 +84,7 @@ module.exports = async ( units ) => {
                 var maxd = Math.floor(setCount[modset.id].filter(s => s === 15).length / modset.setCount)
                 mult -= maxd
 
-                //if( modset && stats[i].includes("Health") && toon.defId.startsWith("G") ) 
+                //if( modset && stats[i].includes("Health") && toon.defId.startsWith("G") )
                 //    console.log( toon.defId, stats[i], modset.setCount, mult, maxd )
 
                 var sdiv = pct[modset.completeBonus.stat.unitStatId] ? 1000000 : 100000000
