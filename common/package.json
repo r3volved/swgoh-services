@@ -12,6 +12,6 @@
     "jszip": "^3.2.1",
     "node-fetch": "^2.3.0",
     "reconnecting-websocket": "^4.1.10",
-    "ws": "^6.2.1"
+    "ws": "^7.4.6"
   }
 }
